@@ -1,14 +1,17 @@
 const express = require('express');
 const { spawn } = require('child_process');
 const app = express();
+const zip = require('./zip-file');
+const upload = require('./upload');
+const axios = require('axios');
 
 app.get('/', (req, res) => {
     res.send('Globe generation service is operational.');
 });
 
 app.get('/generate', (req, res) => {
-    const commandHead = '/Applications/Blender.app/Contents/MacOS/Blender';
-    const commandArguments = ['-b', 'globe.blend', '-P', 'rotate.py', '-a', '--'];
+    const commandHead = 'xvfb-run';
+    const commandArguments = ['-a', 'blender', '-b', 'globe.blend', '-P', 'rotate.py', '--render-output', '/tmp/output/globe-', '-a', '--'];
 
     // Applies arguments that have been provided
     if (req.query.destination_frame) commandArguments.push('--destination_frame', req.query.destination_frame);
@@ -17,7 +20,9 @@ app.get('/generate', (req, res) => {
     if (req.query.destination_latitude) commandArguments.push('--destination_latitude', req.query.destination_latitude);
     if (req.query.destination_longitude) commandArguments.push('--destination_longitude', req.query.destination_longitude);
 
-    const childProcess = spawn(commandHead, commandArguments);
+    const childProcess = spawn(commandHead, commandArguments, {
+        cwd: process.cwd(),
+    });
 
     const commandString = commandHead + ' ' + commandArguments.join(' ');
     console.log(`Running command: ${commandString}`);
@@ -29,21 +34,24 @@ app.get('/generate', (req, res) => {
         console.error(data.toString());
     });
 
-    childProcess.on('close', (code) => {
+    childProcess.on('close', async (code) => {
         console.log(`child process exited with code ${code}`);
-        const zipProcess = spawn('/usr/bin/zip', ['archive.zip', 'output/*.*'], {
-            cwd: process.cwd(),
-        });
 
-        zipProcess.stdout.on('data', (data) => {
-            console.log(data.toString());
-        });
+        const zipResult = zip('/tmp/output/');
+        const uploadResult = upload('/tmp/archive.zip');
 
-        zipProcess.stderr.on('data', (data) => {
-            console.error(data.toString());
-        });
+        const iftttResult = axios
+            .post('https://maker.ifttt.com/trigger/file_uploaded/with/key/' + process.env.IFTTT_KEY, {
+                value1: uploadResult.link,
+            })
+            .then((response) => {
+                console.log('IFTTT webhook successfully sent.');
+            })
+            .catch((error) => {
+                console.error('IFTTT webhook could not be sent.');
+            });
 
-        zipProcess.on('close', (code) => {});
+        console.log(uploadResult);
     });
 
     res.send({ data: { message: 'Rendering process has started', arguments: commandArguments } });
