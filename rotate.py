@@ -44,13 +44,13 @@ class ArgumentParserForBlender(argparse.ArgumentParser):
 
 parser = ArgumentParserForBlender()
 
-# Defaults origin to Greenwhich Meridian
-parser.add_argument('--origin_longitude',default=34, type=float, help='Origin longitude in degrees, defaults to Sydney')
-parser.add_argument('--origin_latitude',default=151, type=float, help='Origin latitude in degrees, defaults to Sydney')
+# Defaults origin to Sydney
+parser.add_argument('--origin_longitude',default=151.209900, type=float, help='Origin longitude in degrees, defaults to Sydney')
+parser.add_argument('--origin_latitude',default=-33.865143, type=float, help='Origin latitude in degrees, defaults to Sydney')
 
 # Defaults destination to Sao Paulo
-parser.add_argument('--destination_longitude',default=23.6, type=float, help='Destination longitude in degrees, defaults to São Paulo')
-parser.add_argument('--destination_latitude',default=-46.6, type=float, help='Destination latitude in degrees, defaults to São Paulo')
+parser.add_argument('--destination_longitude',default=-46.6, type=float, help='Destination longitude in degrees, defaults to São Paulo')
+parser.add_argument('--destination_latitude',default=23.6, type=float, help='Destination latitude in degrees, defaults to São Paulo')
 
 # Sets last frame for the animation
 parser.add_argument('--destination_frame',default=60, type=int, help='Last frame for the animation')
@@ -63,6 +63,9 @@ destination_longitude = args.destination_longitude
 destination_latitude = args.destination_latitude
 destination_frame = args.destination_frame
 
+if destination_frame > 250:
+    sys.exit('The maximum number of frames is 250.')
+
 print(f'Origin set at E {origin_longitude} N {origin_latitude}')
 print(f'Destination set at E {destination_longitude} N {destination_latitude}')
 
@@ -71,13 +74,17 @@ print(f'Starting program...')
 scene = bpy.context.scene
 bpy.context.scene.frame_end = destination_frame
 rotator  = scene.objects['Camera Rotator']
+camera = bpy.data.cameras['Camera.001']
 
+# Inverts latitude
+origin_latitude = origin_latitude * -1
+destination_latitude = destination_latitude * -1
 
 # Converts degrees to radians
-origin_radians_x = radians(origin_longitude)
-origin_radians_z = radians(origin_latitude)
-destination_radians_x = radians(destination_longitude)
-destination_radians_z = radians(destination_latitude)
+origin_radians_x = radians(origin_latitude)
+origin_radians_z = radians(origin_longitude)
+destination_radians_x = radians(destination_latitude)
+destination_radians_z = radians(destination_longitude)
 
 
 # Sets keyframes on object rotator
@@ -92,5 +99,11 @@ rotator.rotation_euler[1] = 0
 rotator.rotation_euler[2] = destination_radians_z
 rotator.keyframe_insert(data_path='rotation_euler', frame=destination_frame)
 print(f'Destination keyframe set at frame {destination_frame}')
+
+# Sets camera keyframe
+camera.lens = 20
+camera.keyframe_insert(data_path='lens', frame=1)
+camera.lens = 50
+camera.keyframe_insert(data_path='lens', frame=destination_frame)
 
 print('All done')
