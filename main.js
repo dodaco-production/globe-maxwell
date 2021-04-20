@@ -1,12 +1,16 @@
 const express = require('express');
 const { spawn } = require('child_process');
-const app = express();
 const zip = require('./zip-file');
 const upload = require('./upload');
 const axios = require('axios');
+const cors = require('cors');
+
+const app = express();
+
+app.use(cors());
 
 app.get('/', (req, res) => {
-    res.send('Globe generation service is operational.');
+    res.send({ data: { message: 'Globe generation service is operational.' } });
 });
 
 app.get('/generate', (req, res) => {
@@ -57,7 +61,7 @@ app.get('/generate', (req, res) => {
     res.send({ data: { message: 'Rendering process has started', arguments: commandArguments } });
 });
 
-const port = 3000;
+const port = process.env.PORT;
 app.listen(port, () => {
     console.log(`Globe generation service listening at http://localhost:${port}`);
 });
