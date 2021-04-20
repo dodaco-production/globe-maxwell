@@ -31,6 +31,19 @@ app.get('/generate', (req, res) => {
 
     childProcess.on('close', (code) => {
         console.log(`child process exited with code ${code}`);
+        const zipProcess = spawn('/usr/bin/zip', ['archive.zip', 'output/*.*'], {
+            cwd: process.cwd(),
+        });
+
+        zipProcess.stdout.on('data', (data) => {
+            console.log(data.toString());
+        });
+
+        zipProcess.stderr.on('data', (data) => {
+            console.error(data.toString());
+        });
+
+        zipProcess.on('close', (code) => {});
     });
 
     res.send({ data: { message: 'Rendering process has started', arguments: commandArguments } });
