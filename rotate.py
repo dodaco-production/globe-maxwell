@@ -52,8 +52,10 @@ parser.add_argument('--origin_latitude',default=-33.865143, type=float, help='Or
 parser.add_argument('--destination_longitude',default=-46.6, type=float, help='Destination longitude in degrees, defaults to São Paulo')
 parser.add_argument('--destination_latitude',default=23.6, type=float, help='Destination latitude in degrees, defaults to São Paulo')
 
-# Sets last frame for the animation
+# Sets renderer and last frame for the animation
 parser.add_argument('--destination_frame',default=60, type=int, help='Last frame for the animation')
+parser.add_argument('--renderer',default='CYCLES', type=str, help='Renderer for the animation')
+parser.add_argument('--samples',default=64, type=int, help='Samples for the render')
 
 args = parser.parse_args()
 
@@ -62,6 +64,8 @@ origin_latitude = args.origin_latitude
 destination_longitude = args.destination_longitude
 destination_latitude = args.destination_latitude
 destination_frame = args.destination_frame
+renderer = args.renderer
+samples = args.samples
 
 if destination_frame > 250:
     sys.exit('The maximum number of frames is 250.')
@@ -106,4 +110,13 @@ camera.keyframe_insert(data_path='lens', frame=1)
 camera.lens = 50
 camera.keyframe_insert(data_path='lens', frame=destination_frame)
 
-print('All done')
+# Sets renderer
+scene.render.engine = renderer
+print(f'Renderer set to {renderer}')
+
+# Sets number of samples
+bpy.context.scene.cycles.samples = samples
+bpy.context.scene.eevee.taa_render_samples = samples
+print(f'Number of samples set to {samples}')
+
+# print('All done')
